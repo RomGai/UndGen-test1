@@ -1,0 +1,14 @@
+[
+  {
+    "image": "./data/images/sneakers_01.jpg",
+    "description": "White low-top sneakers with a breathable mesh upper and minimalist design."
+  },
+  {
+    "image": "./data/images/tote_bag_02.jpg",
+    "description": "Canvas tote bag in beige with reinforced handles and a small front pocket."
+  },
+  {
+    "image": "./data/images/desk_lamp_03.jpg",
+    "description": "Matte black adjustable desk lamp with warm LED light and a slim profile."
+  }
+]
