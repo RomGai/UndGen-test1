@@ -36,13 +36,13 @@ ASPECT_RATIOS = {
 }
 
 
-SPLIT_PROMPT_TEMPLATE = """You are an expert in product planning and image-generation prompts. Structure and split the previous model output as follows:
-1. Identify all distinct products or product bundles mentioned.
-2. For each product, produce an independent, complete, English descriptive prompt that can be directly used by an image generation model.
-3. Each prompt must include: product category, material/texture, color palette, key design elements, usage/placement scene, and photographic style.
+SPLIT_PROMPT_TEMPLATE = """You are an expert in product planning and image-generation prompts. Convert the previous model output into a single product entry:
+1. Identify the single most likely next product the user would purchase (only one product).
+2. Produce a complete, English descriptive prompt that can be directly used by an image generation model.
+3. The prompt must include: product category, material/texture, color palette, key design elements, usage/placement scene, and photographic style.
 4. If the original text lacks attributes, reasonably infer them but do not fabricate specific brands.
-5. Output a JSON array where each element includes: "title" (product name) and "prompt" (image-generation prompt).
-6. Output JSON only, no extra explanation.
+5. Output a JSON array with exactly ONE element. Each element includes: "title" (product name) and "prompt" (image-generation prompt).
+6. Output JSON only, no extra explanation, no code fences.
 
 Previous model output: {model_output}
 """
@@ -65,8 +65,9 @@ def build_messages(history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "type": "text",
             "text": (
                 "You will see the user's shopping history (product images + descriptions). "
-                "Summarize the user's shopping preferences and predict the most likely next "
-                "product type they will purchase, with detailed descriptions. Output in English."
+                "Summarize the user's shopping preferences briefly, then predict the single most "
+                "likely next product type they will purchase, with detailed descriptions. "
+                "Do not list the past purchases. Output in English."
             ),
         }
     ]
@@ -203,11 +204,39 @@ def generate_images(
     return image_paths
 
 
+def _extract_json_snippet(output_text: str) -> str:
+    trimmed = output_text.strip()
+    if not trimmed:
+        return ""
+    if trimmed.startswith("[") and trimmed.endswith("]"):
+        return trimmed
+    if trimmed.startswith("{") and trimmed.endswith("}"):
+        return trimmed
+    list_start = trimmed.find("[")
+    list_end = trimmed.rfind("]")
+    if list_start != -1 and list_end != -1 and list_end > list_start:
+        return trimmed[list_start : list_end + 1]
+    obj_start = trimmed.find("{")
+    obj_end = trimmed.rfind("}")
+    if obj_start != -1 and obj_end != -1 and obj_end > obj_start:
+        return trimmed[obj_start : obj_end + 1]
+    return ""
+
+
 def parse_products(output_text: str) -> List[Dict[str, str]]:
+    snippet = _extract_json_snippet(output_text)
     try:
-        return json.loads(output_text)
+        parsed = json.loads(snippet)
     except json.JSONDecodeError:
         raise ValueError("Failed to parse product JSON from model output")
+    if isinstance(parsed, dict):
+        parsed = [parsed]
+    if not isinstance(parsed, list):
+        raise ValueError("Parsed product data must be a list")
+    for item in parsed:
+        if not isinstance(item, dict) or "title" not in item or "prompt" not in item:
+            raise ValueError("Each product must include 'title' and 'prompt'")
+    return parsed
 
 
 def main() -> None:
