@@ -36,12 +36,12 @@ ASPECT_RATIOS = {
 }
 
 
-SPLIT_PROMPT_TEMPLATE = """You are an expert in product planning and image-generation prompts. Convert the previous model output into a single product entry:
-1. Identify the single most likely next product the user would purchase (only one product).
-2. Produce a complete, English descriptive prompt that can be directly used by an image generation model.
+SPLIT_PROMPT_TEMPLATE = """You are an expert in product planning and image-generation prompts. Convert the previous model output into three product entries:
+1. Identify the three most likely next products the user would purchase (exactly three products).
+2. For each product, produce a complete, English descriptive prompt that can be directly used by an image generation model.
 3. The prompt must include: product category, material/texture, color palette, key design elements, usage/placement scene, and photographic style.
 4. If the original text lacks attributes, reasonably infer them but do not fabricate specific brands.
-5. Output a JSON array with exactly ONE element. Each element includes: "title" (product name) and "prompt" (image-generation prompt).
+5. Output a JSON array with exactly THREE elements. Each element includes: "title" (product name) and "prompt" (image-generation prompt).
 6. Output JSON only, no extra explanation, no code fences.
 
 Previous model output: {model_output}
@@ -65,8 +65,8 @@ def build_messages(history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "type": "text",
             "text": (
                 "You will see the user's shopping history (product images + descriptions). "
-                "Summarize the user's shopping preferences briefly, then predict the single most "
-                "likely next product type they will purchase, with detailed descriptions. "
+                "Summarize the user's shopping preferences briefly, then predict the three most "
+                "likely next product types they will purchase, with detailed descriptions. "
                 "Do not list the past purchases. Output in English."
             ),
         }
@@ -225,6 +225,10 @@ def _extract_json_snippet(output_text: str) -> str:
 
 def parse_products(output_text: str) -> List[Dict[str, str]]:
     snippet = _extract_json_snippet(output_text)
+    print("output_text")
+    print(output_text)
+    print("snipped")
+    print(snipped)
     try:
         parsed = json.loads(snippet)
     except json.JSONDecodeError:
@@ -233,6 +237,8 @@ def parse_products(output_text: str) -> List[Dict[str, str]]:
         parsed = [parsed]
     if not isinstance(parsed, list):
         raise ValueError("Parsed product data must be a list")
+    if len(parsed) != 3:
+        raise ValueError("Parsed product data must contain exactly three items")
     for item in parsed:
         if not isinstance(item, dict) or "title" not in item or "prompt" not in item:
             raise ValueError("Each product must include 'title' and 'prompt'")
