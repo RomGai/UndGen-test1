@@ -44,8 +44,7 @@ SPLIT_PROMPT_TEMPLATE = """You are an expert in product planning and image-gener
 5. Output a JSON array where each element includes: "title" (product name) and "prompt" (image-generation prompt).
 6. Output JSON only, no extra explanation.
 
-Previous model output:
-"""{model_output}"""
+Previous model output: {model_output}
 """
 
 
@@ -213,7 +212,7 @@ def parse_products(output_text: str) -> List[Dict[str, str]]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Qwen3-VL preference + generation pipeline")
-    parser.add_argument("--history", required=True, help="Path to shopping history JSON")
+    parser.add_argument("--history", default="sample_history.json", help="Path to shopping history JSON")
     parser.add_argument("--vl-model", default="Qwen/Qwen3-VL-8B-Thinking")
     parser.add_argument("--image-model", default="Qwen/Qwen-Image-2512")
     parser.add_argument("--aspect", default="16:9")
