@@ -225,6 +225,10 @@ def _extract_json_snippet(output_text: str) -> str:
 
 def parse_products(output_text: str) -> List[Dict[str, str]]:
     snippet = _extract_json_snippet(output_text)
+    print("output_text")
+    print(output_text)
+    print("snipped")
+    print(snipped)
     try:
         parsed = json.loads(snippet)
     except json.JSONDecodeError:
